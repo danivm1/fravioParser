@@ -5,7 +5,7 @@ List<string> files = Directory.GetFiles(Environment.CurrentDirectory, "*.txt").T
 files.ForEach(input =>
 {
     string output = input[0..input.IndexOf(".txt")] + ".csv";
-    string delimiter = ";";
+    string delimiter = "|";
 
     if (!File.Exists(input))
     {
@@ -31,19 +31,24 @@ files.ForEach(input =>
 
         string[] splt = content.Split("  ", StringSplitOptions.RemoveEmptyEntries);
 
+        splt = splt.Where(item => !String.IsNullOrWhiteSpace(item) && !String.IsNullOrEmpty(item)).ToArray();
+
         string txt = "";
         int len = splt.Length;
         int dateColQnt = 0;
+
 
         for (int i = 0; i < len; i++)
         {
             splt[i] = splt[i].Trim() + delimiter;
 
-            dateColQnt += DateOnly.TryParse(splt[i].Replace(";", ""), out _) ? 1 : 0;
+            if (!isHeader)
+                dateColQnt += DateOnly.TryParse(splt[i].Replace(delimiter, ""), out _) || splt[i].Replace(delimiter, "").Length == 8 ? 1 : 0;
+
         }
 
         if (counter == 0 && !isHeader)
-            splt = RemoveDataField(dateColQnt, ref len, splt);
+            splt = RemoveDataField(dateColQnt, ref len, splt, delimiter);
 
         for (int i = 0; i < len; i++)
             txt += splt[i];
@@ -65,13 +70,13 @@ files.ForEach(input =>
     }
 });
 
-static string[] RemoveDataField(int dateColQnt, ref int len, string[] splt)
+static string[] RemoveDataField(int dateColQnt, ref int len, string[] splt, string delimiter)
 {
     if (dateColQnt == 0)
     {
         for (int i = 0; i < 3; i++)
         {
-            splt = splt.Append(";").ToArray();
+            splt = splt.Append(delimiter).ToArray();
         }
         len += 3;
     }
@@ -79,14 +84,14 @@ static string[] RemoveDataField(int dateColQnt, ref int len, string[] splt)
     if (dateColQnt == 1)
     {
         splt = splt.Append(splt[3]).ToArray();
-        splt[3] = ";";
-        splt = splt.Append(";").ToArray();
+        splt[3] = delimiter;
+        splt = splt.Append(delimiter).ToArray();
         len += 2;
     }
 
     if (dateColQnt == 2)
     {
-        splt = splt.Append(";").ToArray();
+        splt = splt.Append(delimiter).ToArray();
         len += 1;
     }
 
